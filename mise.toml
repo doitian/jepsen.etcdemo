@@ -1,0 +1,2 @@
+[tasks.default]
+run = "lein run -- test --nodes-file nodes"
