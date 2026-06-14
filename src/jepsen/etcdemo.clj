@@ -20,6 +20,11 @@
 (def logfile (str dir "/etcd.log"))
 (def pidfile (str dir "/etcd.pid"))
 
+(defn parse-long-nil
+  "Parses a string to a Long. Passes through `nil`."
+  [s]
+  (when s (parse-long s)))
+
 (def sftp-remote
   "Like jepsen.control's default sshj remote, but without the shell-out SCP
   wrapper. The SCP wrapper invokes the system `scp` binary, which can't use the
@@ -100,7 +105,7 @@
   (setup! [this test])
   (invoke! [this test op]
     (case (:f op)
-      :read (assoc op :type :ok, :value (v/get conn "foo"))
+      :read (assoc op :type :ok, :value (parse-long-nil (v/get conn "foo")))
       :write (do (v/reset! conn "foo" (:value op))
                  (assoc op :type :ok))))
 
