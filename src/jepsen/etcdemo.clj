@@ -8,6 +8,7 @@
     [client :as client]
     [control :as c]
     [db :as db]
+    [generator :as gen]
     [tests :as tests]]
    [jepsen.control.util :as cu]
    [jepsen.control.retry :as retry]
@@ -97,7 +98,12 @@
   client/Client
   (open! [this test node] (assoc this :conn (v/connect (client-url node) {:timeout 5000})))
   (setup! [this test])
-  (invoke! [_ test op])
+  (invoke! [this test op]
+    (case (:f op)
+      :read (assoc op :type :ok, :value (v/get conn "foo"))
+      :write (do (v/reset! conn "foo" (:value op))
+                 (assoc op :type :ok))))
+
   (teardown! [this test])
   (close! [_ test]))
 
@@ -111,6 +117,10 @@
           :os debian/os
           :db (db "v3.1.5")
           :client (Client. nil)
+          :generator (->> (gen/mix [r w])
+                          (gen/stagger 1)
+                          (gen/nemesis nil)
+                          (gen/time-limit 15))
           :remote sftp-remote
           :pure-generators true}))
 
