@@ -2,8 +2,10 @@
   (:require
    [clojure.tools.logging :refer :all]
    [clojure.string :as str]
+   [verschlimmbesserung.core :as v]
    [jepsen
     [cli :as cli]
+    [client :as client]
     [control :as c]
     [db :as db]
     [tests :as tests]]
@@ -87,6 +89,18 @@
     (log-files [_ test node]
       [logfile])))
 
+(defn r   [_ _] {:type :invoke, :f :read, :value nil})
+(defn w   [_ _] {:type :invoke, :f :write, :value (rand-int 5)})
+(defn cas [_ _] {:type :invoke, :f :cas, :value [(rand-int 5) (rand-int 5)]})
+
+(defrecord Client [conn]
+  client/Client
+  (open! [this test node] (assoc this :conn (v/connect (client-url node) {:timeout 5000})))
+  (setup! [this test])
+  (invoke! [_ test op])
+  (teardown! [this test])
+  (close! [_ test]))
+
 (defn etcd-test
   "Given an options map from the command line runner (e.g. :nodes, :ssh,
   :concurrency, ...), constructs a test map."
@@ -96,6 +110,7 @@
          {:name "etcd"
           :os debian/os
           :db (db "v3.1.5")
+          :client (Client. nil)
           :remote sftp-remote
           :pure-generators true}))
 
