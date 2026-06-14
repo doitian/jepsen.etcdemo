@@ -10,12 +10,19 @@
    [jepsen.control.util :as cu]
    [jepsen.os.debian :as debian]))
 
+(def dir "/opt/etcd")
+
 (defn db
   "Etcd DB for a particular version."
   [version]
   (reify db/DB
     (setup! [_ test node]
-      (info node "installing etcd" version))
+      (info node "installing etcd" version)
+      (debian/install ["ca-certificates"])
+      (c/su
+       (let [url (str "https://storage.googleapis.com/etcd/" version
+                      "/etcd-" version "-linux-amd64.tar.gz")]
+         (cu/install-archive! url dir))))
 
     (teardown! [_ test node]
       (info node "tearing down etcd"))))
