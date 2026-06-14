@@ -1,2 +1,5 @@
 [tasks.default]
 run = "lein run -- test --nodes-file nodes"
+
+[tasks.cleanup]
+run = "rm -rf store/*"
