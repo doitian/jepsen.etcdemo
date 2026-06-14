@@ -5,6 +5,7 @@
    [verschlimmbesserung.core :as v]
    [slingshot.slingshot :refer [try+]]
    [jepsen
+    [checker :as checker]
     [cli :as cli]
     [client :as client]
     [control :as c]
@@ -14,7 +15,9 @@
    [jepsen.control.util :as cu]
    [jepsen.control.retry :as retry]
    [jepsen.control.sshj :as sshj]
-   [jepsen.os.debian :as debian]))
+   [jepsen.os.debian :as debian]
+   [jepsen.checker.timeline :as timeline]
+   [knossos.model :as model]))
 
 (def dir "/opt/etcd")
 (def binary "etcd")
@@ -128,6 +131,12 @@
           :os debian/os
           :db (db "v3.1.5")
           :client (Client. nil)
+          :checker (checker/compose
+                    {:perf (checker/perf)
+                     :linear (checker/linearizable
+                              {:model (model/cas-register)
+                               :algorithm :linear})
+                     :timeline (timeline/html)})
           :generator (->> (gen/mix [r w cas])
                           (gen/stagger 1)
                           (gen/nemesis nil)
