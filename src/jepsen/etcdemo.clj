@@ -8,12 +8,23 @@
     [db :as db]
     [tests :as tests]]
    [jepsen.control.util :as cu]
+   [jepsen.control.retry :as retry]
+   [jepsen.control.sshj :as sshj]
    [jepsen.os.debian :as debian]))
 
 (def dir "/opt/etcd")
 (def binary "etcd")
 (def logfile (str dir "/etcd.log"))
 (def pidfile (str dir "/etcd.pid"))
+
+(def sftp-remote
+  "Like jepsen.control's default sshj remote, but without the shell-out SCP
+  wrapper. The SCP wrapper invokes the system `scp` binary, which can't use the
+  test's :ssh password and prompts interactively when no key is present. sshj's
+  own SFTP up/download honors username+password auth, so log-file downloads work
+  with root:root."
+  (-> (sshj/->SSHJRemote sshj/concurrency-limit nil nil nil)
+      retry/remote))
 
 (defn node-url
   "An HTTP URL for connecting to a node on a particular port."
@@ -70,7 +81,11 @@
       (info node "tearing down etcd")
 
       (cu/stop-daemon! binary pidfile)
-      (c/su (c/exec :rm :-rf dir)))))
+      (c/su (c/exec :rm :-rf dir)))
+
+    db/LogFiles
+    (log-files [_ test node]
+      [logfile])))
 
 (defn etcd-test
   "Given an options map from the command line runner (e.g. :nodes, :ssh,
@@ -81,6 +96,7 @@
          {:name "etcd"
           :os debian/os
           :db (db "v3.1.5")
+          :remote sftp-remote
           :pure-generators true}))
 
 (defn -main
