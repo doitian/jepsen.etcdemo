@@ -1,4 +1,5 @@
-[tasks.default]
+[tasks.test]
+alias = "default"
 usage = '''
 flag "--time-limit <time_limit>" help="Test time limit in seconds" default="15"
 flag "--concurrency <concurrency>" help="Number of concurrent workers" default="10"
