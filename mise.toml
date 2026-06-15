@@ -1,6 +1,9 @@
 [tasks.default]
-usage = 'flag "--time-limit <time_limit>" help="Test time limit in seconds" default="60"'
-run = "lein run -- test --nodes-file nodes --time-limit ${usage_time_limit}"
+usage = '''
+flag "--time-limit <time_limit>" help="Test time limit in seconds" default="60"
+flag "--concurrency <concurrency>" help="Number of concurrent workers" default="10"
+'''
+run = "lein run -- test --nodes-file nodes --time-limit ${usage_time_limit} --concurrency ${usage_concurrency}"
 
 [tasks.cleanup]
 run = "rm -rf store/*"
