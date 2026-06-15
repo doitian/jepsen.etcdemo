@@ -109,19 +109,22 @@
   (open! [this test node] (assoc this :conn (v/connect (client-url node) {:timeout 5000})))
   (setup! [this test])
   (invoke! [this test op]
-    (case (:f op)
-      :read (assoc op
-                   :type :ok,
-                   :value (-> conn
-                              (v/get "foo" {:quorum? true})
-                              parse-long-nil))
-      :write (do (v/reset! conn "foo" (:value op))
-                 (assoc op :type :ok))
-      :cas (try+
-            (let [[old new] (:value op)]
-              (assoc op :type (if (v/cas! conn "foo" old new) :ok :fail)))
+    (try+
+     (case (:f op)
+       :read (assoc op
+                    :type :ok,
+                    :value (-> conn
+                               (v/get "foo" {:quorum? true})
+                               parse-long-nil))
+       :write (do (v/reset! conn "foo" (:value op))
+                  (assoc op :type :ok))
+       :cas (let [[old new] (:value op)]
+              (assoc op :type (if (v/cas! conn "foo" old new) :ok :fail))))
 
-            (catch [:errorCode 100] ex (assoc op :type :fail, :error :not-found)))))
+     (catch java.net.SocketTimeoutException ex
+       (assoc op :type (if (= :read (:f op)) :fail :info) :error :timeout))
+     (catch [:errorCode 100] ex
+       (assoc op :type :fail, :error :not-found))))
 
   (teardown! [this test])
   (close! [_ test]))
